@@ -1,42 +1,347 @@
-# Tracking Number Detector
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tracking Number Detector: Identify the Courier From a Tracking Number</title>
+<meta name="description" content="Paste a tracking number and instantly see which courier it belongs to. A free in-browser detector for USPS, UPS, FedEx, DHL, Royal Mail and the global postal standard, with a plain-English guide to how tracking-number formats work.">
+<link rel="canonical" href="https://instantparcels.com/couriers">
+<style>
+  :root{
+    --bg:#f7f9fc; --card:#ffffff; --fg:#141a24; --muted:#5a6472; --line:#e3e8f0;
+    --accent:#1a6dff; --accent-ink:#0b3ea8;
+    --ok:#0f9d58; --ok-bg:#e7f6ee; --maybe:#c77700; --maybe-bg:#fdf3e1; --poss:#5a6472; --poss-bg:#eef1f6;
+    --code-bg:#f2f5fa; --code-fg:#14203a;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg:#0d1220; --card:#141b2b; --fg:#e7ebf3; --muted:#98a2b4; --line:#263044;
+      --accent:#5f9bff; --accent-ink:#a8c6ff;
+      --ok:#4bd07f; --ok-bg:#123122; --maybe:#f0b24b; --maybe-bg:#33260f; --poss:#98a2b4; --poss-bg:#1b2334;
+      --code-bg:#0f1626; --code-fg:#d7deeb;
+    }
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--fg);
+    font:16px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;}
+  .wrap{max-width:820px;margin:0 auto;padding:0 20px 90px}
+  header{padding:52px 0 8px;text-align:center}
+  h1{font-size:2rem;line-height:1.2;margin:0 0 10px}
+  .lede{font-size:1.1rem;color:var(--muted);margin:0 auto 6px;max-width:640px}
+  /* tool */
+  .tool{background:var(--card);border:1px solid var(--line);border-radius:16px;
+    padding:22px;margin:26px 0 10px;box-shadow:0 8px 30px rgba(20,30,60,.06)}
+  label{font-weight:600;display:block;margin-bottom:8px;font-size:.95rem}
+  .row{display:flex;gap:10px;flex-wrap:wrap}
+  input[type=text]{flex:1;min-width:220px;font:inherit;font-size:1.05rem;letter-spacing:.02em;
+    padding:13px 15px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--fg);
+    font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+  input[type=text]:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(26,109,255,.15)}
+  button.clear{font:inherit;padding:13px 16px;border:1px solid var(--line);border-radius:10px;
+    background:var(--bg);color:var(--muted);cursor:pointer}
+  button.clear:hover{color:var(--fg);border-color:var(--muted)}
+  .samples{margin-top:12px;font-size:.85rem;color:var(--muted)}
+  .samples b{color:var(--fg);font-weight:600}
+  .chip{display:inline-block;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.8rem;
+    background:var(--code-bg);border:1px solid var(--line);border-radius:999px;padding:3px 10px;margin:4px 6px 0 0;cursor:pointer;color:var(--fg)}
+  .chip:hover{border-color:var(--accent);color:var(--accent)}
+  #results{margin-top:18px;display:grid;gap:10px}
+  .res{border:1px solid var(--line);border-radius:12px;padding:14px 16px;background:var(--bg);
+    display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+  .res .name{font-weight:700;font-size:1.05rem}
+  .res .meta{color:var(--muted);font-size:.88rem;margin-top:2px}
+  .badge{font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;
+    padding:4px 10px;border-radius:999px;white-space:nowrap}
+  .b-ok{background:var(--ok-bg);color:var(--ok)}
+  .b-maybe{background:var(--maybe-bg);color:var(--maybe)}
+  .b-poss{background:var(--poss-bg);color:var(--poss)}
+  .track{background:var(--accent);color:#fff;font-weight:600;font-size:.85rem;
+    padding:8px 14px;border-radius:8px;text-decoration:none;white-space:nowrap}
+  .track:hover{opacity:.92}
+  .empty{color:var(--muted);font-size:.95rem;padding:6px 2px}
+  /* article */
+  article{margin-top:46px}
+  article h2{font-size:1.4rem;margin:40px 0 12px}
+  article h3{font-size:1.12rem;margin:24px 0 8px}
+  article p{margin:0 0 14px}
+  a{color:var(--accent);text-decoration:none}
+  a:hover{text-decoration:underline}
+  table{border-collapse:collapse;width:100%;margin:12px 0 18px;font-size:.9rem;display:block;overflow-x:auto}
+  th,td{border:1px solid var(--line);padding:8px 11px;text-align:left;vertical-align:top}
+  th{background:var(--code-bg);font-weight:600}
+  code{font-family:ui-monospace,Menlo,Consolas,monospace;background:var(--code-bg);color:var(--code-fg);
+    padding:.12em .4em;border-radius:4px;font-size:.9em}
+  pre{background:var(--code-bg);color:var(--code-fg);padding:16px 18px;border-radius:12px;overflow:auto;
+    border:1px solid var(--line);font-size:.85rem;line-height:1.55}
+  pre code{background:none;padding:0}
+  details{border:1px solid var(--line);border-radius:10px;padding:2px 16px;margin:8px 0;background:var(--card)}
+  summary{cursor:pointer;font-weight:600;padding:12px 0}
+  details[open] summary{border-bottom:1px solid var(--line);margin-bottom:10px}
+  footer{margin-top:44px;padding-top:20px;border-top:1px solid var(--line);color:var(--muted);font-size:.9rem;text-align:center}
+  .cta{display:inline-block;background:var(--accent);color:#fff;font-weight:600;padding:11px 20px;border-radius:10px;margin:8px 0}
+  .cta:hover{text-decoration:none;opacity:.92}
+</style>
+</head>
+<body>
+<div class="wrap">
 
-A tiny, dependency-free web tool that guesses the courier behind a tracking number the moment you paste it. Everything runs in the browser: no build step, no backend, no data leaves the page.
+<header>
+  <h1>Tracking Number Detector</h1>
+  <p class="lede">Paste a tracking number and see which courier it most likely belongs to. Everything runs in your browser, nothing is sent anywhere.</p>
+</header>
 
-**Live:** deploy in one click on Vercel (see below), then track any parcel at [instantparcels.com](https://instantparcels.com).
+<section class="tool" aria-label="Tracking number detector">
+  <label for="tn">Tracking number</label>
+  <div class="row">
+    <input id="tn" type="text" placeholder="e.g. 1Z999AA10123456784" autocomplete="off" spellcheck="false" aria-describedby="results">
+    <button class="clear" id="clear" type="button">Clear</button>
+  </div>
+  <div class="samples">
+    <b>Try one:</b>
+    <span class="chip" data-tn="1Z999AA10123456784">1Z999AA10123456784</span>
+    <span class="chip" data-tn="9400111899223197428497">9400 1118 9922 3197 4284 97</span>
+    <span class="chip" data-tn="RA473124829US">RA473124829US</span>
+    <span class="chip" data-tn="RB123456785CN">RB123456785CN</span>
+    <span class="chip" data-tn="AB123456785GB">AB123456785GB</span>
+  </div>
+  <div id="results" aria-live="polite"></div>
+</section>
 
-## What it does
+<article>
 
-Paste a tracking number and the tool normalizes it, matches it against an ordered list of carrier formats, and where the format carries a verification digit it confirms the match by recomputing that digit. Results are labelled by confidence:
+<p>A tracking number is a short string of letters and digits, and hidden inside it is usually enough information to tell you which company is carrying the parcel. The tool above reads that structure and gives you its best answer in real time. This page explains how it reaches that answer, why some numbers can be identified with certainty while others can only be narrowed to a shortlist, and how you can apply the same logic yourself. If you just want to see where a package is, you can look it up across 600+ carriers on <a href="https://instantparcels.com">InstantParcels</a> without knowing the courier in advance.</p>
 
-- **Confirmed** — the format has a check digit and it passes (UPS, USPS, and the UPU S10 postal family).
-- **Likely** — a distinctive prefix or country-code suffix, but no check digit to verify.
-- **Possible** — a plain numeric shape shared by several carriers; needs a real lookup to resolve.
+<h2>Why guessing the courier is harder than it sounds</h2>
+<p>At first glance, identifying a courier from its tracking number feels like it should be a solved problem. In practice it is fiddly, for one main reason: there is no global registry that reserves a particular shape of number for a particular company. Each carrier and each national post invented its own numbering scheme at a different point in history, and those schemes were never coordinated. The result is a landscape where a purely numeric string of a given length might belong to any of several very different companies.</p>
+<p>Some numbers are unmistakable. A string that opens with <code>1Z</code> and runs eighteen characters is a United Parcel Service label and essentially nothing else. A string that finishes with two letters after a run of nine digits is an international postal item, and those final two letters name the country it came from. Other numbers give almost nothing away. Twelve plain digits could be a courier air waybill, a domestic post office barcode, or a private parcel firm's reference. The honest tool, and the honest engineer, treats the first kind as a fact and the second kind as a shortlist.</p>
+<p>The detector above reflects that split. When it can prove an identification using a built-in verification digit, it marks the result <b>confirmed</b>. When the shape is distinctive but unverifiable, it says <b>likely</b>. When the shape is generic and shared by several carriers, it lists every candidate and labels each one <b>possible</b>, because pretending to be certain would only mislead you.</p>
 
-It recognizes UPS, USPS, FedEx, DHL Express and eCommerce, Royal Mail, PostNL, DPD, Evri, Canada Post, and every national post that uses the international S10 standard (identified by the two-letter country suffix). The page also includes a written guide to how tracking-number formats work and how to build your own detector.
+<h2>What the characters actually encode</h2>
+<p>It helps to picture a tracking number as three loosely defined zones rather than a single blob. There is often a <em>prefix</em> that signals the product or the issuing company, a <em>body</em> that uniquely identifies the individual parcel, and in many formats a single <em>verification digit</em> that is calculated from the rest so that a mistyped number can be caught before anyone wastes time looking it up.</p>
+<p>Not every carrier uses all three zones, and the ones that do place them in different orders. But once you know the zones exist, the patterns start to make sense. A prefix is why UPS numbers announce themselves so clearly and why many e-commerce shipments from the German post begin with the same couple of letters. A verification digit is why a good tool can reject a typo the instant you finish pasting, long before it touches a carrier's servers.</p>
 
-## Deploy on Vercel
+<h2>The quickest tell: read the last two letters</h2>
+<p>If a tracking number ends in two letters, you are almost always holding an international postal item formatted to the worldwide standard that national posts use for registered mail, express items, and tracked cross-border parcels. That standard fixes the layout as two opening letters, nine digits, and a two-letter country code, and the closing letters are the single most useful clue you will find anywhere in parcel tracking.</p>
+<p>Those closing letters are an ISO country code that names where the item entered the postal network. A number ending in <code>US</code> was posted through the United States, one ending in <code>DE</code> through Germany, <code>CN</code> through China, <code>GB</code> through the United Kingdom, and so on across roughly two hundred territories. That single fact routes an enormous share of the world's tracked mail, because instead of memorizing a separate pattern for every postal operator on earth, you memorize one pattern and a table of country codes.</p>
+<table>
+  <thead><tr><th>Ends in</th><th>Posted through</th><th>Typical operator</th></tr></thead>
+  <tbody>
+    <tr><td><code>US</code></td><td>United States</td><td>USPS</td></tr>
+    <tr><td><code>GB</code></td><td>United Kingdom</td><td>Royal Mail</td></tr>
+    <tr><td><code>DE</code></td><td>Germany</td><td>Deutsche Post</td></tr>
+    <tr><td><code>CN</code></td><td>China</td><td>China Post / EMS</td></tr>
+    <tr><td><code>CA</code></td><td>Canada</td><td>Canada Post</td></tr>
+    <tr><td><code>AU</code></td><td>Australia</td><td>Australia Post</td></tr>
+    <tr><td><code>IN</code></td><td>India</td><td>India Post</td></tr>
+    <tr><td><code>JP</code></td><td>Japan</td><td>Japan Post</td></tr>
+    <tr><td><code>FR</code></td><td>France</td><td>La Poste</td></tr>
+  </tbody>
+</table>
+<p>One caution: the country code tells you where an item was posted, not necessarily who will hand it to you at the door. A parcel posted in China and ending in <code>CN</code> may be delivered in your country by your own national carrier once it clears customs. For the origin leg, though, the two letters are as reliable a signal as parcel tracking offers.</p>
 
-This is a static site, so no configuration is needed.
+<h2>Carrier signatures at a glance</h2>
+<p>For the major private couriers and the busiest posts, a handful of signatures cover most of what you will ever paste in. The table below is written the way you would actually eyeball a number rather than as formal patterns.</p>
+<table>
+  <thead><tr><th>Looks like</th><th>Length</th><th>Best guess</th></tr></thead>
+  <tbody>
+    <tr><td>Starts <code>1Z</code>, mix of letters and digits</td><td>18</td><td>UPS</td></tr>
+    <tr><td>All digits, starts <code>94 / 93 / 92 / 95</code></td><td>22</td><td>USPS</td></tr>
+    <tr><td>All digits, no prefix</td><td>12 or 15</td><td>FedEx (candidate)</td></tr>
+    <tr><td>All digits</td><td>10</td><td>DHL Express air waybill</td></tr>
+    <tr><td>Starts <code>GM</code></td><td>16 to 20</td><td>DHL eCommerce</td></tr>
+    <tr><td>Two letters, nine digits, two letters</td><td>13</td><td>International post (read the suffix)</td></tr>
+    <tr><td>All digits</td><td>14</td><td>DPD (candidate)</td></tr>
+    <tr><td>Starts <code>3S</code></td><td>~13</td><td>PostNL</td></tr>
+    <tr><td>All digits</td><td>16</td><td>Evri or Canada Post (candidate)</td></tr>
+  </tbody>
+</table>
+<p>Notice how often the word "candidate" appears next to the all-digit rows. That is the whole story of parcel tracking in one column: letters and prefixes give certainty, bare digits give ambiguity. You can browse a full operator directory, one page per carrier, on the <a href="https://instantparcels.com/couriers">InstantParcels courier list</a>.</p>
 
-1. Push this repo to your GitHub account.
-2. In Vercel, choose **Add New Project** and import the repo.
-3. Framework preset: **Other**. Leave build command empty and output directory as the root.
-4. Deploy. Vercel serves `index.html` at your project URL.
+<h2>When the number alone is not enough</h2>
+<p>Sometimes the most useful thing a detector can tell you is that it cannot be sure. A sixteen-digit numeric string is a genuine coin toss between a British home-delivery firm and the Canadian post, and no amount of cleverness will resolve it from the digits alone, because neither format carries a verification digit or a distinguishing prefix. In that situation the correct move is not to pick one and hope. It is to carry both possibilities forward and let an actual tracking lookup settle the matter, since the carrier's own system knows instantly whether the number exists in its records.</p>
+<p>This is exactly the gap a multi-carrier tracker is built to close. Rather than forcing you to identify the courier first, a service like <a href="https://instantparcels.com">InstantParcels</a> accepts the number, tries it against the carriers whose formats it could match, and returns whichever one recognizes it. The detection step becomes a way to narrow the search rather than a decision you have to get right on your own.</p>
 
-You can also drag the folder onto Vercel or run `vercel` from the Vercel CLI.
+<h2>How verification digits catch typos</h2>
+<p>The formats that feel almost magical to work with are the ones that carry a verification digit, because they let you reject a mistyped number offline, in a millisecond, with no network call at all. The idea is simple. When the number is created, one of its positions is filled not with fresh information but with a value calculated from all the other digits. A program that knows the recipe can repeat the calculation and check that the answer matches. If someone fat-fingers a single digit, the recipe no longer balances, and the number is flagged as malformed.</p>
+<p>The international postal standard uses a weighted calculation over its serial digits, where each digit is multiplied by a fixed weight, the products are added up, and the remainder after dividing by eleven produces the verification digit. UPS uses a related scheme across its eighteen characters, first translating its letters into numbers on a repeating cycle and then summing with alternating weights. The United States Postal Service leans on the same style of alternating-weight calculation that sits behind ordinary retail barcodes. The specific recipes differ, but the payoff is identical: a number that fails its own check was either mistyped or invented, and you learn that before spending a lookup on it.</p>
+<p>A verification digit is a strong signal, but it is not proof of delivery. It confirms that a number is <em>well-formed</em>, meaning it was transcribed correctly and follows the rules of its format. It says nothing about whether a real parcel was ever assigned that number. Only the carrier can tell you that, which is why the detector above tops out at "confirmed format" rather than claiming to know a shipment's status.</p>
 
-## Files
+<h2>A practical workflow for support teams and sellers</h2>
+<p>If you run an online shop or answer customer messages, tracking numbers arrive from every direction, often pasted with stray spaces or in the wrong case, and frequently with no mention of which courier was used. A repeatable workflow saves a surprising amount of time.</p>
+<p>Start by cleaning the input. Strip spaces and dashes and force the whole thing to uppercase, because a label that reads <code>ab 1234 5678 5gb</code> and one that reads <code>AB123456785GB</code> are the same number wearing different clothes. Next, look for the two unmistakable signatures: a leading <code>1Z</code> for UPS, and a trailing pair of letters for international post. Between them they account for a large fraction of everyday numbers, and both can be identified with confidence. If neither applies and you are left with a plain run of digits, resist the urge to guess a single carrier. Treat the length as a shortlist, and move straight to a lookup that can try several carriers at once. Finally, when you hand a customer a tracking link, prefer a multi-carrier page over a single carrier's site, so that if the parcel changes hands between carriers mid-journey the same link keeps working.</p>
+<p>For the lookup step itself, the <a href="https://instantparcels.com">InstantParcels</a> home page takes any of these numbers and finds the right carrier for you, and the <a href="https://instantparcels.com/us-post-tracking-numbers">US Post tracking guide</a> is a good reference when you are dealing specifically with domestic American mail and its status messages.</p>
 
-- `index.html` — the entire app and content in one self-contained file.
+<h2>Build your own detector in JavaScript</h2>
+<p>The tool on this page is a few dozen lines of plain JavaScript with no dependencies, and you are welcome to adapt the approach. The shape of a good detector is always the same three steps: normalize the input, test it against an ordered list of patterns from most specific to least specific, and confirm the match with a verification digit wherever the format provides one.</p>
+<p>Ordering is the part people get wrong. If you test a generic "twelve digits" rule before you test the structured formats, you will happily misclassify numbers that merely happen to be twelve digits long. Put the unambiguous patterns first.</p>
+<pre><code>const PATTERNS = [
+  ["UPS",             /^1Z[0-9A-Z]{16}$/],
+  ["USPS",            /^(94|93|92|95)\d{20}$/],
+  ["Royal Mail",      /^[A-Z]{2}\d{9}GB$/],
+  ["China Post",      /^[A-Z]{2}\d{9}CN$/],
+  ["DHL eCommerce",   /^GM\d{16,20}$/],
+  ["PostNL",          /^3S[A-Z0-9]{9,11}$/],
+  ["International",   /^[A-Z]{2}\d{9}[A-Z]{2}$/],
+  ["DPD",             /^\d{14}$/],
+  ["FedEx",           /^\d{12}$|^\d{15}$/],
+  ["DHL Express",     /^\d{10}$/],
+];
 
-## Tech notes
+function candidates(raw){
+  const s = raw.toUpperCase().replace(/[\s-]/g, "");
+  const hits = PATTERNS.filter(([, re]) => re.test(s)).map(([name]) => name);
+  return hits.length ? hits : ["unknown"];
+}</code></pre>
+<p>To turn a shortlist into a confident answer, add the verification-digit check for the format that matched. The international-standard check is compact and covers the entire postal family in one function:</p>
+<pre><code>function s10Valid(tn){
+  const m = tn.match(/^[A-Z]{2}(\d{8})(\d)[A-Z]{2}$/);
+  if(!m) return false;
+  const weights = [8,6,4,2,3,5,9,7];
+  let sum = 0;
+  for(let i=0;i&lt;8;i++) sum += (+m[1][i]) * weights[i];
+  let c = 11 - (sum % 11);
+  c = c === 10 ? 0 : c === 11 ? 5 : c;
+  return c === (+m[2]);
+}
+// s10Valid("RA473124829US") === true</code></pre>
+<p>That is the entire trick. A short ordered list of patterns tells you what a number could be, and a verification-digit function upgrades a lucky guess into something you can rely on. For a fuller written reference covering more carriers and the arithmetic behind each check, the companion notes describe the formats in more depth, and the live <a href="https://instantparcels.com/couriers">carrier directory</a> shows every operator supported for actual tracking.</p>
 
-The detector is plain JavaScript. Detection is a normalize-then-match-then-verify pipeline: specific patterns (like the `1Z` UPS prefix) are tested before generic numeric ones so a twelve-digit number is not misclassified. The three check-digit algorithms (S10 modulo-11, USPS MOD 10, and the UPS 1Z scheme) are implemented inline and are tested against known-valid reference numbers.
+<h2>Frequently asked questions</h2>
 
-## About
+<details>
+  <summary>Can I always tell the courier from the tracking number alone?</summary>
+  <p>No, and any tool that claims otherwise is bluffing. Numbers with a distinctive prefix or a country-code suffix can be identified with confidence, but plain numeric strings are shared across several carriers and can only be narrowed to a shortlist. When the number is ambiguous, the reliable path is a lookup that tries multiple carriers, such as <a href="https://instantparcels.com">InstantParcels</a>.</p>
+</details>
+<details>
+  <summary>What do the last two letters of an international tracking number mean?</summary>
+  <p>They are the ISO country code of the country where the item was posted. A suffix of <code>US</code> means it entered the mail in the United States, <code>DE</code> in Germany, <code>CN</code> in China, and so on. It identifies the origin, not necessarily the company that delivers the final leg.</p>
+</details>
+<details>
+  <summary>Why does the detector sometimes show more than one carrier?</summary>
+  <p>Because the number genuinely matches more than one format. A sixteen-digit numeric string, for example, fits both a major UK home-delivery carrier and the Canadian post. Listing both is more honest than guessing one, and a real tracking query will resolve which is correct.</p>
+</details>
+<details>
+  <summary>Is my tracking number sent anywhere when I use this tool?</summary>
+  <p>No. All the detection runs locally in your browser using JavaScript. Nothing you type is transmitted or stored. If you then choose to track the parcel, that step happens on the carrier or aggregator site you click through to.</p>
+</details>
+<details>
+  <summary>What does a "confirmed" result mean exactly?</summary>
+  <p>It means the number matches a format that carries a verification digit, and that digit checks out. This proves the number is well-formed and correctly transcribed. It does not prove a parcel exists under that number; only the carrier's own system can confirm an active shipment.</p>
+</details>
+<details>
+  <summary>My number has spaces or lowercase letters. Does that matter?</summary>
+  <p>Not to this tool. It removes spaces and dashes and converts everything to uppercase before matching, so <code>ab 1234 5678 5gb</code> and <code>AB123456785GB</code> are treated identically. Carriers often print numbers with spacing for readability.</p>
+</details>
+<details>
+  <summary>Where can I actually track the parcel once I know the carrier?</summary>
+  <p>Use the track link on each result, or go straight to <a href="https://instantparcels.com">InstantParcels</a>, which accepts a tracking number for USPS, UPS, FedEx, DHL and 600+ carriers and postal operators and finds the right one for you.</p>
+</details>
 
-Built as a free utility for developers, online sellers, and support teams. For actual live tracking across 600+ carriers and postal operators, use [InstantParcels](https://instantparcels.com).
+<h2>Resources</h2>
+<ul>
+  <li><a href="https://instantparcels.com">InstantParcels</a>: track a parcel across 600+ carriers and postal operators from one place.</li>
+  <li><a href="https://instantparcels.com/couriers">Courier directory</a>: every supported operator, one page each.</li>
+  <li><a href="https://instantparcels.com/us-post-tracking-numbers">US Post tracking guide</a>: reading and troubleshooting USPS numbers and statuses.</li>
+  <li>Carrier pages: <a href="https://instantparcels.com/couriers/usps">USPS</a>, <a href="https://instantparcels.com/couriers/ups">UPS</a>, <a href="https://instantparcels.com/couriers/fedex">FedEx</a>, <a href="https://instantparcels.com/couriers/dhl">DHL</a>.</li>
+</ul>
 
-## License
+<div style="text-align:center">
+  <a class="cta" href="https://instantparcels.com">Track your parcel on InstantParcels</a>
+</div>
 
-MIT. Use it, fork it, embed it.
+</article>
+
+<footer>
+  <p>Free in-browser tool for developers, sellers and support teams. For live tracking across 600+ carriers, visit <a href="https://instantparcels.com">instantparcels.com</a>.</p>
+</footer>
+
+</div>
+
+<script>
+(function(){
+  "use strict";
+  const CARRIERS = [
+    { name:"UPS", re:/^1Z[0-9A-Z]{16}$/, check:"ups", track:"https://instantparcels.com/couriers/ups" },
+    { name:"USPS", re:/^(94|93|92|95)\d{20}$/, check:"usps", track:"https://instantparcels.com/couriers/usps" },
+    { name:"USPS", re:/^\d{22}$/, check:"usps", track:"https://instantparcels.com/couriers/usps" },
+    { name:"Royal Mail", re:/^[A-Z]{2}\d{9}GB$/, check:"s10", track:"https://instantparcels.com/couriers" },
+    { name:"China Post / EMS", re:/^[A-Z]{2}\d{9}CN$/, check:"s10", track:"https://instantparcels.com/couriers" },
+    { name:"Australia Post", re:/^[A-Z]{2}\d{9}AU$/, check:"s10", track:"https://instantparcels.com/couriers" },
+    { name:"India Post", re:/^[A-Z]{2}\d{9}IN$/, check:"s10", track:"https://instantparcels.com/couriers" },
+    { name:"Japan Post", re:/^[A-Z]{2}\d{9}JP$/, check:"s10", track:"https://instantparcels.com/couriers" },
+    { name:"DHL eCommerce", re:/^GM\d{16,20}$/, check:null, track:"https://instantparcels.com/couriers/dhl" },
+    { name:"PostNL", re:/^3S[A-Z0-9]{9,11}$/, check:null, track:"https://instantparcels.com/couriers" },
+    { name:"International (UPU S10)", re:/^[A-Z]{2}\d{9}[A-Z]{2}$/, check:"s10", track:"https://instantparcels.com/couriers", generic:true },
+    { name:"DPD", re:/^\d{14}$/, check:null, track:"https://instantparcels.com/couriers" },
+    { name:"FedEx", re:/^\d{12}$/, check:null, track:"https://instantparcels.com/couriers/fedex" },
+    { name:"FedEx", re:/^\d{15}$/, check:null, track:"https://instantparcels.com/couriers/fedex" },
+    { name:"Evri / Canada Post", re:/^\d{16}$/, check:null, track:"https://instantparcels.com/couriers" },
+    { name:"DHL Express", re:/^\d{10}$/, check:null, track:"https://instantparcels.com/couriers/dhl" },
+  ];
+  const COUNTRY = {GB:"United Kingdom",US:"United States",CN:"China",CA:"Canada",AU:"Australia",IN:"India",JP:"Japan",ES:"Spain",IT:"Italy",FR:"France",NL:"Netherlands",DE:"Germany",SG:"Singapore",BR:"Brazil"};
+
+  function norm(r){ return r.toUpperCase().replace(/[\s-]/g,""); }
+  function s10Valid(tn){
+    const m = tn.match(/^[A-Z]{2}(\d{8})(\d)[A-Z]{2}$/); if(!m) return false;
+    const w=[8,6,4,2,3,5,9,7]; let s=0; for(let i=0;i<8;i++) s+=(+m[1][i])*w[i];
+    let c=11-(s%11); c=c===10?0:c===11?5:c; return c===(+m[2]);
+  }
+  function uspsValid(tn){
+    if(!/^\d+$/.test(tn)) return false;
+    const b=tn.slice(0,-1), chk=+tn.slice(-1); let s=0;
+    for(let i=0;i<b.length;i++){ s+=(+b[b.length-1-i])*(i%2===0?3:1); }
+    return ((10-s%10)%10)===chk;
+  }
+  function upsValid(tn){
+    const m=tn.match(/^1Z([0-9A-Z]{15})([0-9A-Z])$/); if(!m) return false;
+    const b=m[1], chk=m[2]; const v=c=>/\d/.test(c)?+c:(c.charCodeAt(0)-63)%10;
+    let o=0,e=0; for(let i=0;i<15;i++){ if(i%2===0)o+=v(b[i]); else e+=v(b[i]); }
+    return String((10-(o+e*2)%10)%10)===chk;
+  }
+  function check(kind,tn){ return kind==="s10"?s10Valid(tn):kind==="usps"?uspsValid(tn):kind==="ups"?upsValid(tn):null; }
+
+  function detect(raw){
+    const s = norm(raw); if(!s) return {state:"empty"};
+    if(!/^[0-9A-Z]+$/.test(s)) return {state:"invalid"};
+    const out=[]; const names=new Set(); let hadSpecific=false;
+    for(const c of CARRIERS){
+      if(!c.re.test(s)) continue;
+      if(c.generic && hadSpecific) continue;          // skip generic S10 if a specific carrier already matched
+      if(names.has(c.name)) continue;
+      const r = check(c.check, s);
+      if(r===false) continue;                          // failed verification digit -> reject
+      let conf = r===true ? "confirmed" : (/^1Z/.test(s)||/^[A-Z]{2}\d{9}[A-Z]{2}$/.test(s)||/^GM/.test(s)||/^3S/.test(s) ? "likely":"possible");
+      let country=null; const sm=s.match(/^[A-Z]{2}\d{9}([A-Z]{2})$/); if(sm) country=COUNTRY[sm[1]]||sm[1];
+      out.push({name:c.name, conf, country, track:c.track});
+      names.add(c.name);
+      if(!c.generic) hadSpecific=true;
+    }
+    return {state: out.length?"ok":"none", results:out};
+  }
+
+  const badge = {confirmed:["b-ok","Confirmed"], likely:["b-maybe","Likely"], possible:["b-poss","Possible"]};
+  const input=document.getElementById("tn"), box=document.getElementById("results");
+
+  function render(){
+    const d = detect(input.value);
+    if(d.state==="empty"){ box.innerHTML=""; return; }
+    if(d.state==="invalid"){ box.innerHTML='<div class="empty">That does not look like a tracking number. Tracking numbers use only letters and digits.</div>'; return; }
+    if(d.state==="none"){ box.innerHTML='<div class="empty">No known format matched. It may be a carrier not covered here, or the number may be incomplete. You can still try it on <a href="https://instantparcels.com">InstantParcels</a>, which checks 600+ carriers.</div>'; return; }
+    box.innerHTML = d.results.map(function(r){
+      const b = badge[r.conf];
+      const meta = r.country ? ("Posted in "+r.country) : (r.conf==="possible" ? "Shape matches, needs a lookup to confirm" : "");
+      return '<div class="res"><div><div class="name">'+r.name+'</div>'+(meta?'<div class="meta">'+meta+'</div>':'')+
+        '</div><div style="display:flex;gap:10px;align-items:center"><span class="badge '+b[0]+'">'+b[1]+'</span>'+
+        '<a class="track" href="'+r.track+'" rel="noopener">Track</a></div></div>';
+    }).join("");
+  }
+
+  input.addEventListener("input", render);
+  document.getElementById("clear").addEventListener("click", function(){ input.value=""; render(); input.focus(); });
+  Array.prototype.forEach.call(document.querySelectorAll(".chip"), function(ch){
+    ch.addEventListener("click", function(){ input.value=ch.getAttribute("data-tn"); render(); input.focus(); });
+  });
+})();
+</script>
+</body>
+</html>
